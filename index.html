@@ -121,13 +121,25 @@
 
     .toolbar {
       display: flex;
-      flex-wrap: wrap;
-      gap: 1.25rem;
-      align-items: center;
+      flex-direction: column;
+      gap: 0.75rem;
       padding: 0.875rem 1.25rem;
       background: white;
       border: 1px solid var(--ink-faint);
       border-radius: var(--radius);
+    }
+
+    .toolbar-row {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+    }
+
+    .toolbar-actions {
+      display: flex;
+      gap: 6px;
+      margin-left: auto;
     }
 
     .ctrl-group { display: flex; align-items: center; gap: 0.6rem; }
@@ -225,6 +237,43 @@
 
     .hint { font-size: 0.65rem; letter-spacing: 0.04em; color: var(--ink-muted); text-align: center; }
 
+    .color-swatches { display: flex; gap: 5px; align-items: center; }
+
+    .swatch {
+      width: 20px; height: 20px;
+      border-radius: 4px;
+      border: 1.5px solid var(--ink-faint);
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: border-color 0.15s, transform 0.1s;
+      padding: 0;
+    }
+
+    .swatch:hover { border-color: var(--ink); transform: scale(1.15); }
+    .swatch.active { border-color: var(--ink); border-width: 2px; }
+
+    .swatch-picker {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: white;
+      color: var(--ink-muted);
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .swatch-picker input[type=color] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      border: none;
+    }
+
     @media (max-width: 600px) {
       main { padding: 1rem; gap: 0.875rem; }
       .mode-row { flex-wrap: wrap; gap: 0.5rem; }
@@ -232,7 +281,7 @@
       .upload-zone { min-height: 160px; }
       .toolbar-top { gap: 4px; }
       .toolbar-top .btn { padding: 5px 8px; font-size: 0.62rem; }
-      .toolbar { gap: 0.75rem; padding: 0.75rem 1rem; }
+      .toolbar { gap: 0.5rem; padding: 0.75rem 1rem; }
       .divider { display: none; }
       .shape-btns { flex-wrap: wrap; }
       .canvas-wrap { flex-direction: column; }
@@ -399,25 +448,51 @@
       <button class="btn" id="saveBtn">save image</button>
     </div>
     <div class="toolbar">
-      <div class="ctrl-group">
-        <span class="ctrl-label">Shape</span>
-        <div class="shape-btns" id="shapeBtns">
-          <button class="shape-btn active" data-shape="circle">circle</button>
-          <button class="shape-btn" data-shape="square">square</button>
-          <button class="shape-btn" data-shape="diamond">diamond</button>
-          <button class="shape-btn" data-shape="star">star</button>
-          <button class="shape-btn" data-shape="heart">heart</button>
+      <div class="toolbar-row">
+        <div class="ctrl-group">
+          <span class="ctrl-label">Shape</span>
+          <div class="shape-btns" id="shapeBtns">
+            <button class="shape-btn active" data-shape="circle">circle</button>
+            <button class="shape-btn" data-shape="square">square</button>
+            <button class="shape-btn" data-shape="diamond">diamond</button>
+            <button class="shape-btn" data-shape="star">star</button>
+            <button class="shape-btn" data-shape="heart">heart</button>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="ctrl-group">
+          <span class="ctrl-label">Size</span>
+          <input type="range" id="sizeSlider" min="10" max="80" value="28" step="1">
+          <span class="size-val" id="sizeVal">28px</span>
         </div>
       </div>
-      <div class="divider"></div>
-      <div class="ctrl-group">
-        <span class="ctrl-label">Size</span>
-        <input type="range" id="sizeSlider" min="10" max="80" value="28" step="1">
-        <span class="size-val" id="sizeVal">28px</span>
+      <div class="toolbar-row" id="bgRow" style="display:none;">
+        <div class="ctrl-group">
+          <span class="ctrl-label">Background</span>
+          <div class="color-swatches" id="colorSwatches">
+            <button class="swatch active" data-color="#ffffff" style="background:#ffffff;" title="white"></button>
+            <button class="swatch" data-color="#000000" style="background:#000000;" title="black"></button>
+            <button class="swatch" data-color="#F2F2F0" style="background:#F2F2F0;" title="gray"></button>
+            <button class="swatch" data-color="#fde8d8" style="background:#fde8d8;" title="peach"></button>
+            <button class="swatch" data-color="#d4e8fd" style="background:#d4e8fd;" title="sky"></button>
+            <button class="swatch" data-color="#d8f5e4" style="background:#d8f5e4;" title="mint"></button>
+            <button class="swatch" data-color="#f5d8f5" style="background:#f5d8f5;" title="lilac"></button>
+            <label class="swatch swatch-picker" title="custom color">
+              <input type="color" id="bgColorPicker" value="#ffffff">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>
+            </label>
+          </div>
+        </div>
+        <div class="toolbar-actions">
+          <button class="btn" id="undoBtn">undo</button>
+          <button class="btn btn-danger" id="clearBtn">clear</button>
+        </div>
       </div>
-      <div style="margin-left:auto; display:flex; gap:6px;">
-        <button class="btn btn-danger" id="undoBtn">undo</button>
-        <button class="btn" id="clearBtn">clear</button>
+      <div class="toolbar-row" id="actionsRow">
+        <div class="toolbar-actions">
+          <button class="btn" id="undoBtnAlt">undo</button>
+          <button class="btn btn-danger" id="clearBtnAlt">clear</button>
+        </div>
       </div>
     </div>
 
@@ -463,7 +538,7 @@
   const ctxB      = canvasB.getContext('2d');
 
   let imgA = null, imgB = null;
-  let holes = [], shape = 'circle';
+  let holes = [], shape = 'circle', bgColor = '#ffffff';
   let W = 0, H = 0;
   let twoMode = false;
 
@@ -562,6 +637,10 @@
     canvasA.width = W; canvasA.height = H;
     canvasB.width = W; canvasB.height = H;
     holes = [];
+
+    const showBg = !twoMode;
+    document.getElementById('bgRow').style.display = showBg ? 'flex' : 'none';
+    document.getElementById('actionsRow').style.display = showBg ? 'none' : 'flex';
 
     if (twoMode) {
       document.getElementById('labelA').textContent = 'image A — holes reveal B';
@@ -694,21 +773,34 @@
     const srcA = makeScaled(imgA);
     const srcB = (twoMode && imgB) ? makeScaled(imgB) : null;
 
-    ctxA.clearRect(0, 0, W, H);
-    ctxA.drawImage(srcA, 0, 0);
-    holes.forEach(h => {
-      ctxA.save();
-      tracePath(ctxA, h.cx, h.cy, h.r);
-      if (srcB) {
+    if (srcB) {
+      ctxA.clearRect(0, 0, W, H);
+      ctxA.drawImage(srcA, 0, 0);
+      holes.forEach(h => {
+        ctxA.save();
+        tracePath(ctxA, h.cx, h.cy, h.r);
         ctxA.clip();
         ctxA.drawImage(srcB, 0, 0);
-      } else {
-        ctxA.globalCompositeOperation = 'destination-out';
-        ctxA.fillStyle = '#000';
-        ctxA.fill();
-      }
-      ctxA.restore();
-    });
+        ctxA.restore();
+      });
+    } else {
+      const tmpA = document.createElement('canvas');
+      tmpA.width = W; tmpA.height = H;
+      const tmpACtx = tmpA.getContext('2d');
+      tmpACtx.drawImage(srcA, 0, 0);
+      holes.forEach(h => {
+        tmpACtx.save();
+        tracePath(tmpACtx, h.cx, h.cy, h.r);
+        tmpACtx.globalCompositeOperation = 'destination-out';
+        tmpACtx.fillStyle = '#000';
+        tmpACtx.fill();
+        tmpACtx.restore();
+      });
+      ctxA.clearRect(0, 0, W, H);
+      ctxA.fillStyle = bgColor;
+      ctxA.fillRect(0, 0, W, H);
+      ctxA.drawImage(tmpA, 0, 0);
+    }
 
     ctxB.clearRect(0, 0, W, H);
     if (srcB) {
@@ -721,7 +813,7 @@
         ctxB.restore();
       });
     } else {
-      ctxB.fillStyle = '#fff';
+      ctxB.fillStyle = bgColor;
       ctxB.fillRect(0, 0, W, H);
       holes.forEach(h => {
         ctxB.save();
@@ -764,12 +856,38 @@
     punch(canvasB, t.clientX, t.clientY);
   }, { passive: false });
 
+  const bloopNotes = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88];
+
+  function playBloop() {
+    const t = audioCtx.currentTime;
+    const freq = bloopNotes[Math.floor(Math.random() * bloopNotes.length)];
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    const filter = audioCtx.createBiquadFilter();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq * 0.5, t);
+    osc.frequency.exponentialRampToValueAtTime(freq, t + 0.04);
+    osc.frequency.exponentialRampToValueAtTime(freq * 0.92, t + 0.18);
+    filter.type = 'lowpass';
+    filter.frequency.value = 1200;
+    filter.Q.value = 2;
+    gain.gain.setValueAtTime(0.0, t);
+    gain.gain.linearRampToValueAtTime(0.18, t + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(t);
+    osc.stop(t + 0.22);
+  }
+
   document.getElementById('shapeBtns').addEventListener('click', e => {
     const btn = e.target.closest('.shape-btn');
     if (!btn) return;
     shape = btn.dataset.shape;
     document.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    if (!muted) playBloop();
     draw();
   });
 
@@ -778,8 +896,94 @@
     draw();
   });
 
-  document.getElementById('undoBtn').addEventListener('click', () => { holes.pop(); draw(); });
-  document.getElementById('clearBtn').addEventListener('click', () => { holes = []; draw(); });
+  document.getElementById('colorSwatches').addEventListener('click', e => {
+    const swatch = e.target.closest('.swatch[data-color]');
+    if (!swatch) return;
+    bgColor = swatch.dataset.color;
+    document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+    swatch.classList.add('active');
+    draw();
+  });
+
+  document.getElementById('bgColorPicker').addEventListener('input', e => {
+    bgColor = e.target.value;
+    document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+    document.querySelector('.swatch-picker').classList.add('active');
+    draw();
+  });
+
+  function playMaraca() {
+    const t = audioCtx.currentTime;
+    [0, 0.1, 0.2].forEach(offset => {
+      const bufSize = audioCtx.sampleRate * 0.08;
+      const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+      const src = audioCtx.createBufferSource();
+      src.buffer = buf;
+      const hipass = audioCtx.createBiquadFilter();
+      hipass.type = 'highpass';
+      hipass.frequency.value = 5000;
+      const bandpass = audioCtx.createBiquadFilter();
+      bandpass.type = 'bandpass';
+      bandpass.frequency.value = 8000;
+      bandpass.Q.value = 0.8;
+      const gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(0.0, t + offset);
+      gain.gain.linearRampToValueAtTime(0.25, t + offset + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + offset + 0.07);
+      src.connect(hipass);
+      hipass.connect(bandpass);
+      bandpass.connect(gain);
+      gain.connect(audioCtx.destination);
+      src.start(t + offset);
+      src.stop(t + offset + 0.08);
+    });
+  }
+
+  function playUndo() {
+    const t = audioCtx.currentTime;
+    const bass = audioCtx.createOscillator();
+    const bassGain = audioCtx.createGain();
+    const bassMuffle = audioCtx.createBiquadFilter();
+    bassMuffle.type = 'lowpass';
+    bassMuffle.frequency.value = 80;
+    bassMuffle.Q.value = 0.5;
+    bass.type = 'sine';
+    bass.frequency.setValueAtTime(35, t);
+    bass.frequency.exponentialRampToValueAtTime(90, t + 0.11);
+    bassGain.gain.setValueAtTime(0.001, t);
+    bassGain.gain.exponentialRampToValueAtTime(0.25, t + 0.09);
+    bassGain.gain.linearRampToValueAtTime(0.0, t + 0.11);
+    bass.connect(bassGain);
+    bassGain.connect(bassMuffle);
+    bassMuffle.connect(audioCtx.destination);
+    bass.start(t);
+    bass.stop(t + 0.11);
+    const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.11, audioCtx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(100, t);
+    filter.frequency.exponentialRampToValueAtTime(600, t + 0.11);
+    filter.Q.value = 1.2;
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(0.05, t + 0.11);
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioCtx.destination);
+    src.start(t);
+    src.stop(t + 0.11);
+  }
+
+  document.getElementById('undoBtn').addEventListener('click', () => { holes.pop(); if (!muted) playUndo(); draw(); });
+  document.getElementById('clearBtn').addEventListener('click', () => { holes = []; if (!muted) playMaraca(); draw(); });
+  document.getElementById('undoBtnAlt').addEventListener('click', () => { holes.pop(); if (!muted) playUndo(); draw(); });
+  document.getElementById('clearBtnAlt').addEventListener('click', () => { holes = []; if (!muted) playMaraca(); draw(); });
 
   document.getElementById('muteBtn').addEventListener('click', () => {
     muted = !muted;
