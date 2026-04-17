@@ -232,7 +232,7 @@
 
     .panel-divider { width: 1px; background: var(--ink-faint); flex-shrink: 0; }
 
-    canvas { display: block; width: 100%; height: auto; }
+    canvas { display: block; }
     #canvasA { cursor: crosshair; }
 
     .hint { font-size: 0.65rem; letter-spacing: 0.04em; color: var(--ink-muted); text-align: center; }
@@ -593,12 +593,10 @@
     zone.classList.add('loaded');
     zone.querySelectorAll('.zone-preview, .zone-loaded-label').forEach(el => el.remove());
     zone.querySelectorAll('span, svg').forEach(el => el.style.display = 'none');
-
     const preview = document.createElement('img');
     preview.className = 'zone-preview';
     preview.src = src;
     zone.appendChild(preview);
-
     const label = document.createElement('div');
     label.className = 'zone-loaded-label';
     label.innerHTML = `
@@ -631,11 +629,20 @@
     const scaleH = maxH / imgA.height;
     const scale = Math.min(scaleW, scaleH);
 
-    W = Math.round(imgA.width * scale);
-    H = Math.round(imgA.height * scale);
+    const cssW = Math.round(imgA.width * scale);
+    const cssH = Math.round(imgA.height * scale);
+
+    const dpr = window.devicePixelRatio || 1;
+    W = Math.round(cssW * dpr);
+    H = Math.round(cssH * dpr);
 
     canvasA.width = W; canvasA.height = H;
     canvasB.width = W; canvasB.height = H;
+    canvasA.style.width = cssW + 'px';
+    canvasA.style.height = cssH + 'px';
+    canvasB.style.width = cssW + 'px';
+    canvasB.style.height = cssH + 'px';
+
     holes = [];
 
     const showBg = !twoMode;
@@ -827,6 +834,7 @@
 
   function canvasPos(canvas, clientX, clientY) {
     const r = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
     return {
       x: (clientX - r.left) * (W / r.width),
       y: (clientY - r.top)  * (H / r.height)
@@ -835,7 +843,7 @@
 
   function punch(canvas, clientX, clientY) {
     const p = canvasPos(canvas, clientX, clientY);
-    holes.push({ cx: p.x, cy: p.y, r: getR() });
+    holes.push({ cx: p.x, cy: p.y, r: getR() * (window.devicePixelRatio || 1) });
     playPunch();
     draw();
   }
@@ -1016,12 +1024,99 @@
   });
 
   function doExport(title) {
+    const expW = imgA.width;
+    const expH = imgA.height;
+
+    const outA = document.createElement('canvas');
+    const outB = document.createElement('canvas');
+    outA.width = expW; outA.height = expH;
+    outB.width = expW; outB.height = expH;
+    const oCtxA = outA.getContext('2d');
+    const oCtxB = outB.getContext('2d');
+
+    const srcA = document.createElement('canvas');
+    srcA.width = expW; srcA.height = expH;
+    srcA.getContext('2d').drawImage(imgA, 0, 0);
+
+    const srcB = (twoMode && imgB) ? (() => {
+      const c = document.createElement('canvas');
+      c.width = expW; c.height = expH;
+      c.getContext('2d').drawImage(imgB, 0, 0, expW, expH);
+      return c;
+    })() : null;
+
+    const scaleBack = expW / W;
+
+    function tracePathAt(ctx, cx, cy, r) {
+      const ecx = cx * scaleBack, ecy = cy * scaleBack, er = r * scaleBack;
+      ctx.beginPath();
+      if (shape === 'circle') {
+        ctx.arc(ecx, ecy, er, 0, Math.PI * 2);
+      } else if (shape === 'square') {
+        ctx.rect(ecx - er, ecy - er, er * 2, er * 2);
+      } else if (shape === 'diamond') {
+        ctx.moveTo(ecx, ecy - er); ctx.lineTo(ecx + er, ecy);
+        ctx.lineTo(ecx, ecy + er); ctx.lineTo(ecx - er, ecy);
+        ctx.closePath();
+      } else if (shape === 'star') {
+        const inn = er * 0.4;
+        for (let k = 0; k < 10; k++) {
+          const a = (k * Math.PI) / 5 - Math.PI / 2;
+          const rl = k % 2 === 0 ? er : inn;
+          k === 0 ? ctx.moveTo(ecx + Math.cos(a)*rl, ecy + Math.sin(a)*rl)
+                  : ctx.lineTo(ecx + Math.cos(a)*rl, ecy + Math.sin(a)*rl);
+        }
+        ctx.closePath();
+      } else if (shape === 'heart') {
+        const s = er / 10;
+        ctx.save();
+        ctx.translate(ecx, ecy - er * 0.1);
+        ctx.scale(s, s);
+        ctx.moveTo(0, 3);
+        ctx.bezierCurveTo(-1, 1, -10, -1, -10, -7);
+        ctx.bezierCurveTo(-10, -12, -3, -14, 0, -9);
+        ctx.bezierCurveTo(3, -14, 10, -12, 10, -7);
+        ctx.bezierCurveTo(10, -1, 1, 1, 0, 3);
+        ctx.closePath();
+        ctx.restore();
+      }
+    }
+
+    if (srcB) {
+      oCtxA.drawImage(srcA, 0, 0);
+      holes.forEach(h => {
+        oCtxA.save(); tracePathAt(oCtxA, h.cx, h.cy, h.r);
+        oCtxA.clip(); oCtxA.drawImage(srcB, 0, 0); oCtxA.restore();
+      });
+      oCtxB.drawImage(srcB, 0, 0);
+      holes.forEach(h => {
+        oCtxB.save(); tracePathAt(oCtxB, h.cx, h.cy, h.r);
+        oCtxB.clip(); oCtxB.drawImage(srcA, 0, 0); oCtxB.restore();
+      });
+    } else {
+      const tmp = document.createElement('canvas');
+      tmp.width = expW; tmp.height = expH;
+      const tCtx = tmp.getContext('2d');
+      tCtx.drawImage(srcA, 0, 0);
+      holes.forEach(h => {
+        tCtx.save(); tracePathAt(tCtx, h.cx, h.cy, h.r);
+        tCtx.globalCompositeOperation = 'destination-out';
+        tCtx.fillStyle = '#000'; tCtx.fill(); tCtx.restore();
+      });
+      oCtxA.fillStyle = bgColor; oCtxA.fillRect(0, 0, expW, expH);
+      oCtxA.drawImage(tmp, 0, 0);
+      oCtxB.fillStyle = bgColor; oCtxB.fillRect(0, 0, expW, expH);
+      holes.forEach(h => {
+        oCtxB.save(); tracePathAt(oCtxB, h.cx, h.cy, h.r);
+        oCtxB.clip(); oCtxB.drawImage(srcA, 0, 0); oCtxB.restore();
+      });
+    }
+
     const out = document.createElement('canvas');
-    out.width  = W * 2;
-    out.height = H;
+    out.width = expW * 2; out.height = expH;
     const oc = out.getContext('2d');
-    oc.drawImage(canvasA, 0, 0);
-    oc.drawImage(canvasB, W, 0);
+    oc.drawImage(outA, 0, 0);
+    oc.drawImage(outB, expW, 0);
     const a = document.createElement('a');
     a.href = out.toDataURL('image/png');
     a.download = title.toLowerCase().replace(/\s+/g, '-') + '.png';
